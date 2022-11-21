@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -ex
+HERE=$(dirname $0)
+. $HERE/common
+
+docker build --rm \
+    --tag "${IMAGE_NAME}:${TAG_GIT_SHA}" \
+    $HERE
+
+# We always push the SHA tagged versions, for debugging if the tests
+# after this step fail
+docker push $TAG_SHA

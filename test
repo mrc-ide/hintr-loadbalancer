@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+set -ex
+HERE=$(dirname $0)
+. $HERE/common
+
+# In case we switch agents between steps or tag has been updated
+docker pull $TAG_SHA
+
+NAME_LOADBALANCER=hint_loadbalancer
+
+function cleanup {
+    echo "Cleaning up"
+    docker kill $NAME_LOADBALANCER >/dev/null || true
+}
+
+trap cleanup EXIT
+
+docker run --rm -it \
+    $TAG_SHA

@@ -1,0 +1,14 @@
+steps:
+  - label: ":whale: Build"
+    command: build
+
+  - wait
+
+  - label: ":hammer: test"
+    command: test
+
+  - wait
+
+  - label: ":shipit: Push"
+    command: push
+

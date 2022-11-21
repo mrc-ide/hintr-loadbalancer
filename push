@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -ex
+HERE=$(dirname $0)
+. $HERE/common
+
+# In case we switch agents between steps
+[ ! -z $(docker images -q $TAG_SHA) ] || docker pull $TAG_SHA
+
+# Push the human-readable tagged versions here (the SHA versions were
+# pushed during build)
+docker tag $TAG_SHA $TAG_BRANCH
+docker push $TAG_BRANCH
