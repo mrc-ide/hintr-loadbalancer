@@ -4,7 +4,7 @@ HERE=$(dirname $0)
 . $HERE/common
 
 docker build --rm \
-    --tag "${IMAGE_NAME}:${TAG_GIT_SHA}" \
+    --tag "$TAG_SHA" \
     $HERE
 
 # We always push the SHA tagged versions, for debugging if the tests

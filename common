@@ -1,6 +1,6 @@
 ## -*-sh-*-
 
-PACKAGE_NAME=hintr-lb
+PACKAGE_NAME=hintr-loadbalancer
 PACKAGE_ORG=mrcide
 
 # Buildkite doesn't check out a full history from the remote (just the

@@ -6,7 +6,7 @@ HERE=$(dirname $0)
 # In case we switch agents between steps or tag has been updated
 docker pull $TAG_SHA
 
-NAME_LOADBALANCER=hint_loadbalancer
+NAME_LOADBALANCER=hintr_loadbalancer
 
 function cleanup {
     echo "Cleaning up"
@@ -15,5 +15,12 @@ function cleanup {
 
 trap cleanup EXIT
 
-docker run --rm -it \
+docker run --rm -d \
+    -p 8888:8888 \
+    -p 5555:5555 \
+    --name $NAME_LOADBALANCER \
     $TAG_SHA
+
+## Data API is running
+sleep 2
+curl --user admin:mypassword localhost:5555/v2/info
