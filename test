@@ -6,21 +6,61 @@ HERE=$(dirname $0)
 # In case we switch agents between steps or tag has been updated
 docker pull $TAG_SHA
 
+NAME_NETWORK=hintr_network
 NAME_LOADBALANCER=hintr_loadbalancer
+NAME_REDIS=hintr_redis
+NAME_HINTR=hintr
 
 function cleanup {
     echo "Cleaning up"
+    docker kill $NAME_REDIS >/dev/null || true
+    docker kill $NAME_HINTR >/dev/null || true
     docker kill $NAME_LOADBALANCER >/dev/null || true
+    docker network rm $NAME_NETWORK >/dev/null || true
 }
 
 trap cleanup EXIT
 
-docker run --rm -d \
+docker network create $NAME_NETWORK
+
+docker run --rm -d --network=$NAME_NETWORK --network-alias=redis \
+    --name $NAME_REDIS redis
+
+docker run --rm -d --network=$NAME_NETWORK \
+    -e REDIS_URL=redis://redis:6379 \
+    --name $NAME_HINTR \
+    mrcide/hintr:master
+
+docker run --rm -d --network=$NAME_NETWORK \
     -p 8888:8888 \
-    -p 5555:5555 \
     --name $NAME_LOADBALANCER \
     $TAG_SHA
 
 ## Data API is running
 sleep 2
-curl --user admin:mypassword localhost:5555/v2/info
+docker exec $NAME_LOADBALANCER configure_backend -p 8888 --address $NAME_HINTR
+
+## curl command will error with message
+## curl: (56) Recv failure: Connection reset by peer
+## if you try to get status before server is ready to
+## accept connections. Ideally we would use curl --retry-all-errors
+## but this only available in 7.71.0 which is not available
+## in standard ubuntu package sources yet
+function retry() {
+    local -r -i max_attempts="$1"
+    shift
+    local -i attempt_num=1
+    until [[ $($@) == '{"status":"success","errors":null,"data":"Welcome to hintr"}' ]]; do
+        if ((attempt_num == max_attempts)); then
+            echo "Attempt $attempt_num failed and there are no more attempts left!"
+            return 1
+        else
+            echo "Attempt $attempt_num failed! Trying again in $attempt_num seconds..."
+            sleep $((attempt_num++))
+        fi
+    done
+    echo "SUCCESS"
+    exit 0
+}
+
+retry 10 curl --silent http://localhost:8888
