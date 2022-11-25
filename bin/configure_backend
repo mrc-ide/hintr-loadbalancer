@@ -1,0 +1,96 @@
+#!/usr/bin/env bash
+set -e
+
+USAGE="Configure backend servers of haproxy
+Usage: $(basename "$0") -h <port> --address <address> --address <address2>
+Options:
+    -h         Show this help text
+    -p         Port backend services are running on
+    --address  The address to add as a backend server (can pass multiple)"
+
+if [[ -z "$@" ]]; then
+    echo "$USAGE"
+    exit 1
+fi
+OPTIONS=$(getopt -o "hp:" --long "address:" -- "$@")
+
+eval set -- "$OPTIONS"
+while true; do
+    case "$1" in
+    -h)
+        echo "$USAGE"
+        exit 0
+        ;;
+    -p)
+        shift
+        PORT=$1
+        ;;
+    --address)
+        shift
+        ADDRESS+=("$1")
+        ;;
+    --)
+        shift
+        break
+        ;;
+    esac
+    shift
+done
+
+if [[ -z $PORT ]]; then
+    echo "Please set a port see $0 -h for usage."
+    exit 1
+fi
+
+if [[ -z $ADDRESS || ${#ADDRESS[@]} -eq 0 ]]; then
+    echo "Please set at least 1 address see $0 -h for usage."
+    exit 1
+fi
+
+check_response() {
+    ## If dataplane API fails it returns a code in the
+    ## response body, otherwise no code is returned
+    CODE=$(jq -r .code <<<"$1")
+    if [[ $CODE -ne 'null' ]]; then
+        echo "$1"
+        exit 1
+    fi
+}
+
+## This update is run in a transaction, transactions are versioned. So first
+## get the configuration version and then start a transaction for that version
+RESPONSE=$(curl -s -X GET --user admin:mypassword \
+    "http://localhost:5555/v2/services/haproxy/configuration/version")
+
+if [ $? -eq 0 ]; then
+    VERSION=$RESPONSE
+else
+    echo $RESPONSE
+    exit 1
+fi
+
+RESPONSE=$(curl -s -X POST --user admin:mypassword \
+    "http://localhost:5555/v2/services/haproxy/transactions?version=$VERSION")
+
+check_response "${RESPONSE}"
+
+TRANSACTION_ID=$(jq -r .id <<<"$RESPONSE")
+
+echo "Running update in transaction $TRANSACTION_ID"
+
+for addr in "${ADDRESS[@]}"; do
+    ## Because we using docker containers for now can just use name as the address
+    ## which will be the name of the docker container
+    echo "Adding address $addr at port $PORT to backend config with name $addr"
+    RESPONSE=$(curl -s -X POST --user admin:mypassword \
+        -H "Content-Type: application/json" \
+        -d "{\"name\": \"$addr\", \"address\": \"$addr\", \"port\": $PORT}" \
+        "localhost:5555/v2/services/haproxy/configuration/servers?backend=hintr&transaction_id=$TRANSACTION_ID")
+
+    check_response "${RESPONSE}"
+done
+
+RESPONSE=$(curl -s -X PUT --user admin:mypassword \
+    "http://localhost:5555/v2/services/haproxy/transactions/$TRANSACTION_ID")
+
+check_response "${RESPONSE}"
