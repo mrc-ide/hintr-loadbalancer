@@ -13,9 +13,9 @@ else
 fi
 
 if [ "$BUILDKITE" = "true" ]; then
-    GIT_COMMIT=$BUILDKITE_COMMIT
+    GIT_BRANCH=$BUILDKITE_BRANCH
 else
-    GIT_COMMIT=$(git -C "$PACKAGE_ROOT" rev-parse HEAD)
+    GIT_BRANCH=$(git -C "$PACKAGE_ROOT" symbolic-ref --short HEAD)
 fi
 
 TAG_SHA="${PACKAGE_ORG}/${PACKAGE_NAME}:${GIT_SHA}"
