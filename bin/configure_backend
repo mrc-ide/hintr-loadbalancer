@@ -84,7 +84,7 @@ for addr in "${ADDRESS[@]}"; do
     echo "Adding address $addr at port $PORT to backend config with name $addr"
     RESPONSE=$(curl -s -X POST --user admin:mypassword \
         -H "Content-Type: application/json" \
-        -d "{\"name\": \"$addr\", \"address\": \"$addr\", \"port\": $PORT}" \
+        -d "{\"name\": \"$addr\", \"address\": \"$addr\", \"port\": $PORT, \"maxconn\": 1}" \
         "localhost:5555/v2/services/haproxy/configuration/servers?backend=hintr&transaction_id=$TRANSACTION_ID")
 
     check_response "${RESPONSE}"
