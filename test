@@ -1,10 +1,5 @@
 #!/usr/bin/env bash
 set -ex
-HERE=$(dirname $0)
-. $HERE/common
-
-# In case we switch agents between steps or tag has been updated
-docker pull $TAG_SHA
 
 NAME_NETWORK=hintr_network
 NAME_LOADBALANCER=hintr_loadbalancer
@@ -34,7 +29,7 @@ docker run --rm -d --network=$NAME_NETWORK \
 docker run --rm -d --network=$NAME_NETWORK \
     -p 8888:8888 \
     --name $NAME_LOADBALANCER \
-    $TAG_SHA
+    "$TAG_BRANCH"
 
 ## Data API is running
 sleep 2
