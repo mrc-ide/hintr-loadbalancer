@@ -66,9 +66,6 @@ jobs:
             ghcr.io/${{env.TAG_LOADBALANCER_GHCR}}:latest
             ghcr.io/${{env.TAG_LOADBALANCER_GHCR}}:${{steps.extract_branch.outputs.CI_BRANCH}}
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-
       - name: Test loadbalancer container
         run: ./test
         env:
